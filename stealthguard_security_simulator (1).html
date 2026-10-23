@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StealthGuard - محاكي القفل المموّه</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter & Cairo) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#00f2fe',
+                            blue: '#4facfe',
+                            purple: '#7f00ff',
+                            darkBg: '#0b0f19',
+                            cardBg: 'rgba(17, 24, 39, 0.7)'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glow-button {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.35);
+            transition: all 0.3s ease;
+        }
+
+        .glow-button:active {
+            transform: scale(0.97);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+        }
+
+        /* Prevent scrolling in lock mode */
+        .no-scroll {
+            overflow: hidden !important;
+            height: 100vh !important;
+        }
+
+        /* Glitch Animation Keyframes */
+        @keyframes glitchAnim {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        .glitch-effect {
+            animation: glitchAnim 0.3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 sm:p-6 bg-radial from-slate-900 to-black text-gray-100">
+
+    <!-- MAIN DASHBOARD CONTAINER -->
+    <div id="dashboard" class="max-w-md mx-auto w-full flex-grow flex flex-col justify-between py-2">
+        
+        <!-- Header / Language & Status Bar -->
+        <header class="flex items-center justify-between glass-panel rounded-2xl p-4 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500" id="appTitle">
+                        StealthGuard
+                    </h1>
+                    <p class="text-xs text-gray-400" id="appSubtitle">قفل التمويه المتقدم</p>
+                </div>
+            </div>
+            <button id="langToggle" class="px-3 py-1.5 rounded-xl glass-card text-xs font-semibold hover:bg-slate-800 transition flex items-center gap-1.5 text-gray-300">
+                <i class="fa-solid fa-globe text-cyan-400"></i>
+                <span id="langLabel">English</span>
+            </button>
+        </header>
+
+        <!-- Activation Modes Section -->
+        <main class="space-y-4 my-auto">
+            
+            <!-- Quick Arm Buttons -->
+            <div class="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-500/20 shadow-2xl">
+                <div class="text-center space-y-1">
+                    <h2 class="text-base font-bold text-gray-200" id="modeSelectTitle">اختر طريقة التمويه</h2>
+                    <p class="text-xs text-gray-400" id="modeSelectDesc">سيعمل القفل فوراً أو بعد موقّت زمني</p>
+                </div>
+
+                <!-- Mode 1: Pitch Black Lock -->
+                <button id="startBlackLockBtn" class="w-full glow-button py-4 px-5 rounded-2xl font-bold text-slate-950 flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-950/20 flex items-center justify-center text-slate-950">
+                            <i class="fa-solid fa-moon text-xl"></i>
+                        </div>
+                        <div class="text-right rtl:text-right ltr:text-left">
+                            <div class="text-sm font-extrabold" id="blackModeTitle">شاشة سوداء مطفأة</div>
+                            <div class="text-xs opacity-80 font-normal" id="blackModeDesc">شاشة سوداء بالكامل وكأن الموبايل مغلق</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-left rtl:rotate-0 ltr:rotate-180 text-slate-950 opacity-60 group-hover:translate-x-[-2px] transition"></i>
+                </button>
+
+                <!-- Mode 2: Frozen / Fake Error Screen -->
+                <button id="startGlitchLockBtn" class="w-full glass-card hover:bg-slate-800/80 border border-slate-700/60 py-4 px-5 rounded-2xl font-bold text-gray-200 flex items-center justify-between transition group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                        </div>
+                        <div class="text-right rtl:text-right ltr:text-left">
+                            <div class="text-sm font-extrabold text-gray-100" id="glitchModeTitle">شاشة تعليق / خطأ نظام</div>
+                            <div class="text-xs text-gray-400 font-normal" id="glitchModeDesc">محاكاة تجمد الموبايل والشحن 0%</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-left rtl:rotate-0 ltr:rotate-180 text-gray-400 opacity-60 group-hover:translate-x-[-2px] transition"></i>
+                </button>
+            </div>
+
+            <!-- Lock Options / Settings Accordion -->
+            <div class="glass-panel p-5 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                    <span class="text-xs font-bold text-gray-300 flex items-center gap-2" id="settingsTitle">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> إعدادات الأمان
+                    </span>
+                    <span id="tapTargetBadge" class="text-xs font-mono bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/30">10 ضغطات</span>
+                </div>
+
+                <!-- Secret Tap Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span id="tapCountLabel">عدد الضغطات لفك القفل:</span>
+                        <span id="tapValueDisplay" class="font-bold text-cyan-400">10</span>
+                    </div>
+                    <input type="range" id="tapSlider" min="3" max="20" value="10" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                </div>
+
+                <!-- Timer Delay Options -->
+                <div class="space-y-2 pt-2">
+                    <label class="text-xs text-gray-400 block" id="delayLabel">تأخير تفعيل القفل:</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" class="delay-btn px-2 py-2 rounded-xl text-xs font-semibold glass-card border border-cyan-500/40 text-cyan-400 bg-cyan-500/10" data-delay="0">فوراً</button>
+                        <button type="button" class="delay-btn px-2 py-2 rounded-xl text-xs font-semibold glass-card text-gray-400 hover:text-white" data-delay="3">3 ثوانٍ</button>
+                        <button type="button" class="delay-btn px-2 py-2 rounded-xl text-xs font-semibold glass-card text-gray-400 hover:text-white" data-delay="5">5 ثوانٍ</button>
+                        <button type="button" class="delay-btn px-2 py-2 rounded-xl text-xs font-semibold glass-card text-gray-400 hover:text-white" data-delay="10">10 ثوانٍ</button>
+                    </div>
+                </div>
+
+                <!-- Additional Toggles -->
+                <div class="space-y-3 pt-2">
+                    <!-- Progress Indicator Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-eye-slash text-xs text-gray-400"></i>
+                            <span class="text-xs text-gray-300" id="indicatorToggleLabel">مؤشر الضغطات المخفي</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="indicatorToggle" class="sr-only peer" checked>
+                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Vibration Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-mobile-retro text-xs text-gray-400"></i>
+                            <span class="text-xs text-gray-300" id="vibeToggleLabel">اهتزاز عند الضغط</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="vibeToggle" class="sr-only peer" checked>
+                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- NEW: VOICE COMMAND SETTINGS SECTION -->
+                <div class="border-t border-gray-800 pt-3 mt-3 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-microphone text-xs text-cyan-400"></i>
+                            <span class="text-xs font-semibold text-gray-200" id="voiceToggleLabel">التفعيل بالأمر الصوتي</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="voiceToggle" class="sr-only peer">
+                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Voice Settings Panel (Visible when toggled ON) -->
+                    <div id="voiceSettingsPanel" class="hidden space-y-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-400" id="micStatusLabel">حالة المايك:</span>
+                            <span id="micStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                                غير نشط
+                            </span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-[11px] text-gray-400 block" id="triggerPhraseLabel">كلمة السر الصوتية:</label>
+                            <input type="text" id="triggerPhraseInput" value="اقفل" class="w-full bg-slate-950 border border-slate-700/70 rounded-xl px-3 py-1.5 text-xs text-cyan-300 focus:outline-none focus:border-cyan-400 font-bold" placeholder="مثال: اقفل، قفل الموبايل">
+                        </div>
+
+                        <p class="text-[10px] text-gray-500 leading-tight" id="voiceHint">
+                            * اترك التطبيق مفتوحاً، وأول ما تقول الكلمة دي الموبايل هيتقفل فوراً.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Installation / How to Use Accordion -->
+            <div class="glass-panel p-4 rounded-3xl text-xs space-y-2 border border-slate-800">
+                <button id="guideToggleBtn" class="w-full flex items-center justify-between text-gray-300 font-bold">
+                    <span class="flex items-center gap-2" id="guideTitle">
+                        <i class="fa-solid fa-circle-info text-cyan-400"></i> كيف تضيف التطبيق لشاشتك الرئيسية؟
+                    </span>
+                    <i class="fa-solid fa-chevron-down transition-transform text-gray-500" id="guideIcon"></i>
+                </button>
+                <div id="guideContent" class="hidden text-gray-400 space-y-2 pt-2 border-t border-gray-800 leading-relaxed">
+                    <p id="guideText1">لكي يعمل كأنه تطبيق حقيقي بدون أشرطة متصفح:</p>
+                    <ol class="list-decimal list-inside space-y-1 text-gray-300 pr-1">
+                        <li id="guideStep1">افتح القائمة في المتصفح (⋮ في Chrome أو زر المشاركة في Safari).</li>
+                        <li id="guideStep2">اختر <strong class="text-cyan-400">"إضافة إلى الشاشة الرئيسية" (Add to Home Screen)</strong>.</li>
+                        <li id="guideStep3">افتح التطبيق مباشرة من الشاشة الرئيسية واضغط زر القفل قبل إعطاء الموبايل لأي شخص!</li>
+                    </ol>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center text-[11px] text-gray-500 py-2">
+            <span id="footerText">StealthGuard &copy; 2026 - حماية متقدمة ضد المتطفلين</span>
+        </footer>
+    </div>
+
+    <!-- DELAY COUNTDOWN OVERLAY -->
+    <div id="countdownOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
+        <div class="text-center space-y-4">
+            <div class="text-cyan-400 text-5xl font-mono font-extrabold animate-bounce" id="countdownNumber">3</div>
+            <p class="text-sm text-gray-300 font-medium" id="countdownText">جاري تجهيز شاشة التمويه... جهّز الموبايل!</p>
+            <button id="cancelDelayBtn" class="px-5 py-2 rounded-full glass-card text-xs text-rose-400 border border-rose-500/30 hover:bg-rose-500/10">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN LOCK OVERLAY (PITCH BLACK / GLITCH) -->
+    <div id="lockOverlay" class="fixed inset-0 bg-black hidden z-50 flex flex-col items-center justify-between p-6 cursor-pointer touch-none select-none">
+        
+        <!-- Mode 2 Fake Glitch Screen Content -->
+        <div id="glitchContent" class="w-full h-full flex flex-col items-center justify-center text-center space-y-6 hidden">
+            <div class="w-16 h-16 border-4 border-slate-700 border-t-cyan-500 rounded-full animate-spin"></div>
+            <div class="space-y-2">
+                <h3 class="text-rose-500 font-mono text-lg font-bold glitch-effect">SYSTEM ERROR #0x88F</h3>
+                <p class="text-gray-400 text-xs font-mono">Battery Critical (0%) - Shutting down...</p>
+                <p class="text-gray-600 text-[10px] font-mono">System locked to prevent data corruption.</p>
+            </div>
+            <div class="absolute bottom-10 text-[11px] text-gray-700 font-mono">
+                Connect Charger or Restart Device
+            </div>
+        </div>
+
+        <!-- Subtle Hidden Tap Progress Indicator -->
+        <div id="progressDots" class="absolute top-4 left-0 right-0 flex justify-center gap-1.5 opacity-20 pointer-events-none transition-opacity duration-300">
+            <!-- Dynamic dots inserted via JavaScript -->
+        </div>
+
+        <!-- Hidden Tap Counter Badge (Only briefly fades in on tap if enabled) -->
+        <div id="discreetFeedback" class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-800 font-mono tracking-widest opacity-0 transition-opacity duration-200 pointer-events-none">
+            <span id="currentTapCount">0</span>/<span id="totalTapCount">10</span>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Translations Dictionary
+        const i18n = {
+            ar: {
+                appTitle: "StealthGuard",
+                appSubtitle: "قفل التمويه المتقدم",
+                langLabel: "English",
+                modeSelectTitle: "اختر طريقة التمويه",
+                modeSelectDesc: "سيعمل القفل فوراً أو بعد موقّت زمني",
+                blackModeTitle: "شاشة سوداء مطفأة",
+                blackModeDesc: "شاشة سوداء بالكامل وكأن الموبايل مغلق",
+                glitchModeTitle: "شاشة تعليق / خطأ نظام",
+                glitchModeDesc: "محاكاة تجمد الموبايل والشحن 0%",
+                settingsTitle: "إعدادات الأمان",
+                tapCountLabel: "عدد الضغطات لفك القفل:",
+                delayLabel: "تأخير تفعيل القفل:",
+                indicatorToggleLabel: "مؤشر الضغطات المخفي",
+                vibeToggleLabel: "اهتزاز عند الضغط",
+                voiceToggleLabel: "التفعيل بالأمر الصوتي",
+                micStatusLabel: "حالة المايك:",
+                triggerPhraseLabel: "كلمة السر الصوتية:",
+                voiceHint: "* اترك التطبيق مفتوحاً، وأول ما تقول الكلمة دي الموبايل هيتقفل فوراً.",
+                micInactive: "غير نشط",
+                micListening: "جاري الاستماع...",
+                micUnsupported: "غير مدعوم بالمتصفح",
+                guideTitle: "كيف تضيف التطبيق لشاشتك الرئيسية؟",
+                guideText1: "لكي يعمل كأنه تطبيق حقيقي بدون أشرطة متصفح:",
+                guideStep1: "افتح القائمة في المتصفح (⋮ في Chrome أو زر المشاركة في Safari).",
+                guideStep2: "اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).",
+                guideStep3: "افتح التطبيق مباشرة من الشاشة الرئيسية واضغط زر القفل قبل إعطاء الموبايل لأي شخص!",
+                footerText: "StealthGuard © 2026 - حماية متقدمة ضد المتطفلين",
+                countdownText: "جاري تجهيز شاشة التمويه... جهّز الموبايل!",
+                cancel: "إلغاء",
+                delayImmediately: "فوراً",
+                delaySeconds: "ثوانٍ"
+            },
+            en: {
+                appTitle: "StealthGuard",
+                appSubtitle: "Stealth Lock Simulator",
+                langLabel: "العربية",
+                modeSelectTitle: "Select Stealth Mode",
+                modeSelectDesc: "Arms instantly or after countdown timer",
+                blackModeTitle: "Pitch Black Screen",
+                blackModeDesc: "Complete black screen as if phone is dead",
+                glitchModeTitle: "Frozen System Error",
+                glitchModeDesc: "Simulates screen freeze & 0% battery shutdown",
+                settingsTitle: "Security Settings",
+                tapCountLabel: "Unlocking Taps Required:",
+                delayLabel: "Arming Delay:",
+                indicatorToggleLabel: "Subtle Tap Indicator",
+                vibeToggleLabel: "Haptic Vibration Feedback",
+                voiceToggleLabel: "Voice Command Arming",
+                micStatusLabel: "Mic Status:",
+                triggerPhraseLabel: "Secret Phrase:",
+                voiceHint: "* Keep app open. Saying this word will instantly arm the lock.",
+                micInactive: "Inactive",
+                micListening: "Listening...",
+                micUnsupported: "Not Supported",
+                guideTitle: "How to Add to Home Screen (PWA)",
+                guideText1: "Run it full-screen with zero browser UI:",
+                guideStep1: "Open browser menu (⋮ on Chrome, Share icon on Safari).",
+                guideStep2: "Tap 'Add to Home Screen'.",
+                guideStep3: "Open directly from your home screen and arm before handing over your phone!",
+                footerText: "StealthGuard © 2026 - Anti-Intruder Stealth Lock",
+                countdownText: "Preparing stealth lock... Get ready!",
+                cancel: "Cancel",
+                delayImmediately: "Instant",
+                delaySeconds: "sec"
+            }
+        };
+
+        // Application State
+        let currentLang = 'ar';
+        let requiredTaps = 10;
+        let selectedDelay = 0; // seconds
+        let currentTapCount = 0;
+        let isLocked = false;
+        let activeLockMode = 'black'; // 'black' or 'glitch'
+        let countdownTimer = null;
+
+        // Speech Recognition Engine Variables
+        let recognition = null;
+        let isVoiceEnabled = false;
+
+        // DOM Elements
+        const tapSlider = document.getElementById('tapSlider');
+        const tapValueDisplay = document.getElementById('tapValueDisplay');
+        const tapTargetBadge = document.getElementById('tapTargetBadge');
+        const delayBtns = document.querySelectorAll('.delay-btn');
+        const indicatorToggle = document.getElementById('indicatorToggle');
+        const vibeToggle = document.getElementById('vibeToggle');
+        
+        const voiceToggle = document.getElementById('voiceToggle');
+        const voiceSettingsPanel = document.getElementById('voiceSettingsPanel');
+        const micStatusBadge = document.getElementById('micStatusBadge');
+        const triggerPhraseInput = document.getElementById('triggerPhraseInput');
+
+        const dashboard = document.getElementById('dashboard');
+        const lockOverlay = document.getElementById('lockOverlay');
+        const glitchContent = document.getElementById('glitchContent');
+        const progressDots = document.getElementById('progressDots');
+        const discreetFeedback = document.getElementById('discreetFeedback');
+        const currentTapCountSpan = document.getElementById('currentTapCount');
+        const totalTapCountSpan = document.getElementById('totalTapCount');
+
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownNumber = document.getElementById('countdownNumber');
+        const cancelDelayBtn = document.getElementById('cancelDelayBtn');
+
+        const guideToggleBtn = document.getElementById('guideToggleBtn');
+        const guideContent = document.getElementById('guideContent');
+        const guideIcon = document.getElementById('guideIcon');
+        const langToggle = document.getElementById('langToggle');
+
+        // Initialize & Event Listeners
+        window.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            initSpeechRecognition();
+            updateLanguageUI();
+        });
+
+        function setupEventListeners() {
+            // Slider change
+            tapSlider.addEventListener('input', (e) => {
+                requiredTaps = parseInt(e.target.value);
+                tapValueDisplay.textContent = requiredTaps;
+                tapTargetBadge.textContent = `${requiredTaps} ${currentLang === 'ar' ? 'ضغطات' : 'Taps'}`;
+            });
+
+            // Delay options
+            delayBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    delayBtns.forEach(b => {
+                        b.classList.remove('border', 'border-cyan-500/40', 'text-cyan-400', 'bg-cyan-500/10');
+                        b.classList.add('text-gray-400');
+                    });
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('border', 'border-cyan-500/40', 'text-cyan-400', 'bg-cyan-500/10');
+                    selectedDelay = parseInt(btn.dataset.delay);
+                });
+            });
+
+            // Start Lock Buttons
+            document.getElementById('startBlackLockBtn').addEventListener('click', () => prepareLock('black'));
+            document.getElementById('startGlitchLockBtn').addEventListener('click', () => prepareLock('glitch'));
+
+            // Cancel Countdown
+            cancelDelayBtn.addEventListener('click', cancelCountdown);
+
+            // Lock Overlay Taps (Handles both touch and click)
+            lockOverlay.addEventListener('pointerdown', handleLockTap);
+
+            // Accordion Toggle
+            guideToggleBtn.addEventListener('click', () => {
+                guideContent.classList.toggle('hidden');
+                guideIcon.classList.toggle('rotate-180');
+            });
+
+            // Language Switcher
+            langToggle.addEventListener('click', () => {
+                currentLang = currentLang === 'ar' ? 'en' : 'ar';
+                document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+                document.documentElement.lang = currentLang;
+                updateLanguageUI();
+                if (recognition && isVoiceEnabled) {
+                    recognition.lang = currentLang === 'ar' ? 'ar-EG' : 'en-US';
+                }
+            });
+
+            // Voice Toggle Listener
+            voiceToggle.addEventListener('change', (e) => {
+                isVoiceEnabled = e.target.checked;
+                if (isVoiceEnabled) {
+                    voiceSettingsPanel.classList.remove('hidden');
+                    startListening();
+                } else {
+                    voiceSettingsPanel.classList.add('hidden');
+                    stopListening();
+                }
+            });
+
+            // Prevent context menu on lock screen
+            lockOverlay.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        // Web Speech API Initialization
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                micStatusBadge.textContent = i18n[currentLang].micUnsupported;
+                micStatusBadge.className = "text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono";
+                voiceToggle.disabled = true;
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = currentLang === 'ar' ? 'ar-EG' : 'en-US';
+
+            recognition.onstart = () => {
+                micStatusBadge.textContent = i18n[currentLang].micListening;
+                micStatusBadge.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono animate-pulse";
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                
+                const triggerPhrase = triggerPhraseInput.value.trim().toLowerCase();
+                if (transcript.toLowerCase().includes(triggerPhrase) && !isLocked) {
+                    prepareLock('black'); // Instantly lock when word detected
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.log("Speech Recognition Error: ", event.error);
+            };
+
+            recognition.onend = () => {
+                // Keep continuous listening if enabled and screen not locked
+                if (isVoiceEnabled && !isLocked) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log(e);
+                    }
+                } else {
+                    micStatusBadge.textContent = i18n[currentLang].micInactive;
+                    micStatusBadge.className = "text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono";
+                }
+            };
+        }
+
+        function startListening() {
+            if (recognition && isVoiceEnabled) {
+                try {
+                    recognition.lang = currentLang === 'ar' ? 'ar-EG' : 'en-US';
+                    recognition.start();
+                } catch (e) {
+                    console.log("Already listening or failed:", e);
+                }
+            }
+        }
+
+        function stopListening() {
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        }
+
+        // Language Switch Logic
+        function updateLanguageUI() {
+            const t = i18n[currentLang];
+            document.getElementById('appTitle').textContent = t.appTitle;
+            document.getElementById('appSubtitle').textContent = t.appSubtitle;
+            document.getElementById('langLabel').textContent = t.langLabel;
+            document.getElementById('modeSelectTitle').textContent = t.modeSelectTitle;
+            document.getElementById('modeSelectDesc').textContent = t.modeSelectDesc;
+            document.getElementById('blackModeTitle').textContent = t.blackModeTitle;
+            document.getElementById('blackModeDesc').textContent = t.blackModeDesc;
+            document.getElementById('glitchModeTitle').textContent = t.glitchModeTitle;
+            document.getElementById('glitchModeDesc').textContent = t.glitchModeDesc;
+            document.getElementById('settingsTitle').innerHTML = `<i class="fa-solid fa-sliders text-cyan-400"></i> ${t.settingsTitle}`;
+            document.getElementById('tapCountLabel').textContent = t.tapCountLabel;
+            document.getElementById('delayLabel').textContent = t.delayLabel;
+            document.getElementById('indicatorToggleLabel').textContent = t.indicatorToggleLabel;
+            document.getElementById('vibeToggleLabel').textContent = t.vibeToggleLabel;
+            document.getElementById('voiceToggleLabel').textContent = t.voiceToggleLabel;
+            document.getElementById('micStatusLabel').textContent = t.micStatusLabel;
+            document.getElementById('triggerPhraseLabel').textContent = t.triggerPhraseLabel;
+            document.getElementById('voiceHint').textContent = t.voiceHint;
+            document.getElementById('guideTitle').innerHTML = `<i class="fa-solid fa-circle-info text-cyan-400"></i> ${t.guideTitle}`;
+            document.getElementById('guideText1').textContent = t.guideText1;
+            document.getElementById('guideStep1').textContent = t.guideStep1;
+            document.getElementById('guideStep2').textContent = t.guideStep2;
+            document.getElementById('guideStep3').textContent = t.guideStep3;
+            document.getElementById('footerText').textContent = t.footerText;
+            document.getElementById('countdownText').textContent = t.countdownText;
+            cancelDelayBtn.textContent = t.cancel;
+            tapTargetBadge.textContent = `${requiredTaps} ${currentLang === 'ar' ? 'ضغطات' : 'Taps'}`;
+
+            // Update Default Trigger word based on language
+            if (currentLang === 'en' && triggerPhraseInput.value === 'اقفل') {
+                triggerPhraseInput.value = 'lock now';
+            } else if (currentLang === 'ar' && triggerPhraseInput.value === 'lock now') {
+                triggerPhraseInput.value = 'اقفل';
+            }
+
+            // Update Delay Buttons Labels
+            delayBtns.forEach(btn => {
+                const val = btn.dataset.delay;
+                if (val === "0") {
+                    btn.textContent = t.delayImmediately;
+                } else {
+                    btn.textContent = `${val} ${t.delaySeconds}`;
+                }
+            });
+        }
+
+        // Prepare Lock with Optional Delay
+        function prepareLock(mode) {
+            activeLockMode = mode;
+            stopListening(); // Stop mic while locked to save resources
+
+            if (selectedDelay > 0) {
+                let timeLeft = selectedDelay;
+                countdownNumber.textContent = timeLeft;
+                countdownOverlay.classList.remove('hidden');
+
+                countdownTimer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        clearInterval(countdownTimer);
+                        countdownOverlay.classList.add('hidden');
+                        activateLock();
+                    } else {
+                        countdownNumber.textContent = timeLeft;
+                    }
+                }, 1000);
+            } else {
+                activateLock();
+            }
+        }
+
+        function cancelCountdown() {
+            if (countdownTimer) clearInterval(countdownTimer);
+            countdownOverlay.classList.add('hidden');
+            if (isVoiceEnabled) startListening();
+        }
+
+        // Activate Lock Mode
+        function activateLock() {
+            isLocked = true;
+            currentTapCount = 0;
+            totalTapCountSpan.textContent = requiredTaps;
+            currentTapCountSpan.textContent = 0;
+
+            // Trigger Browser Fullscreen Mode
+            try {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.webkitRequestFullscreen) {
+                    document.webkitRequestFullscreen();
+                }
+            } catch (err) {
+                console.log("Fullscreen request declined or unsupported:", err);
+            }
+
+            // Configure Glitch vs Black Screen
+            if (activeLockMode === 'glitch') {
+                glitchContent.classList.remove('hidden');
+                lockOverlay.classList.remove('bg-black');
+                lockOverlay.classList.add('bg-slate-950');
+            } else {
+                glitchContent.classList.add('hidden');
+                lockOverlay.classList.add('bg-black');
+                lockOverlay.classList.remove('bg-slate-950');
+            }
+
+            // Build dynamic progress dots
+            buildProgressDots();
+
+            // Lock Body Scroll & Display Overlay
+            document.body.classList.add('no-scroll');
+            lockOverlay.classList.remove('hidden');
+        }
+
+        // Build Progress Dots Indicator
+        function buildProgressDots() {
+            progressDots.innerHTML = '';
+            if (!indicatorToggle.checked) {
+                progressDots.classList.add('hidden');
+                return;
+            }
+            progressDots.classList.remove('hidden');
+
+            for (let i = 0; i < requiredTaps; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'w-1.5 h-1.5 rounded-full bg-gray-700 transition-all duration-200';
+                dot.id = `dot-${i}`;
+                progressDots.appendChild(dot);
+            }
+        }
+
+        // Handle Screen Taps in Lock Mode
+        function handleLockTap(e) {
+            if (!isLocked) return;
+            e.preventDefault();
+
+            currentTapCount++;
+            currentTapCountSpan.textContent = currentTapCount;
+
+            // Haptic Vibration Feedback
+            if (vibeToggle.checked && navigator.vibrate) {
+                navigator.vibrate(40);
+            }
+
+            // Update Progress Dots
+            if (indicatorToggle.checked) {
+                const activeDot = document.getElementById(`dot-${currentTapCount - 1}`);
+                if (activeDot) {
+                    activeDot.classList.remove('bg-gray-700');
+                    activeDot.classList.add('bg-cyan-400', 'shadow-[0_0_8px_#00f2fe]');
+                }
+            }
+
+            // Subtle counter feedback briefly visible
+            discreetFeedback.classList.remove('opacity-0');
+            discreetFeedback.classList.add('opacity-40');
+            setTimeout(() => {
+                discreetFeedback.classList.remove('opacity-40');
+                discreetFeedback.classList.add('opacity-0');
+            }, 500);
+
+            // Check if secret unlock threshold reached
+            if (currentTapCount >= requiredTaps) {
+                unlockScreen();
+            }
+        }
+
+        // Unlock Screen & Reset UI
+        function unlockScreen() {
+            isLocked = false;
+            lockOverlay.classList.add('hidden');
+            document.body.classList.remove('no-scroll');
+
+            // Exit Fullscreen
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => console.log(err));
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+
+            // Resume Voice Listening if enabled
+            if (isVoiceEnabled) {
+                startListening();
+            }
+
+            // Success vibration burst
+            if (vibeToggle.checked && navigator.vibrate) {
+                navigator.vibrate([80, 50, 80]);
+            }
+        }
+    </script>
+</body>
+</html>
